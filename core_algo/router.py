@@ -5,9 +5,8 @@ class MotionRouter:
         self.baseline_1g = 0.0
         self.enmo_buffer = [0.0] * 100 
         self.buf_idx = 0
-        
-        # 【修改这里】：将剧烈运动阈值调低为 500，以匹配我们的假数据
-        self.MOTION_TH = 500.0 
+
+        self.MOTION_TH = 400.0
         self.current_state = "REST" 
 
     def update(self, acc_x, acc_y, acc_z):

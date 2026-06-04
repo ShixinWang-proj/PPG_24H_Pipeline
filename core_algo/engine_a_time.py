@@ -17,19 +17,19 @@ class EngineATimeDomain:
         self.time_per_point_ms = 1000.0 / fs
 
         self.prev_clean_y = None
-        self.MAX_SLEW_RATE = 3000.0
+        self.MAX_SLEW_RATE = 8000.0
 
         self.med_buf = [0.0] * 5
         self.med_idx = 0
         self.med_filled = False
 
-        self.MA_WINDOW = 8
+        self.MA_WINDOW = 12  # 或者 20
         self.ma_buf = [0.0] * self.MA_WINDOW
         self.ma_idx = 0
         self.ma_sum = 0.0
         self.ma_filled = False
 
-        self.DC_ALPHA = 0.95
+        self.DC_ALPHA = 0.99
         self.prev_raw_dc = None
         self.prev_ac_y = 0.0
 
@@ -41,10 +41,10 @@ class EngineATimeDomain:
         self.PHASE_WAITING_FOR_PEAK = 1
         self.current_phase = self.PHASE_WAITING_FOR_VALLEY
 
-        self.MIN_AC_AMP = 500.0
+        self.MIN_AC_AMP = 1000.0
         self.upper_th = 5000.0
         self.lower_th = -5000.0
-        self.recent_p2p = 800.0
+        self.recent_p2p = 3000.0
 
         self.local_max = float('-inf')
         self.local_max_x = 0
@@ -72,7 +72,7 @@ class EngineATimeDomain:
         self.MIN_VALID_AMP = 15.0
 
         self.baseline_rri = 0.0
-        self.MIN_VALID_AMP = 15.0
+        self.MIN_VALID_AMP = 300.0
         self.FILTER_DELAY = 5.5  # 【新增】滤波器带来的相位延迟
 
     def suspend(self):
@@ -127,6 +127,10 @@ class EngineATimeDomain:
         return ac_y
 
     def stage3_state_machine(self, ac_y, enmo, current_global_i, time_str):
+        # 【调试代码】监控真实数据的幅度水平和动态阈值
+        # if current_global_i % 100 == 0:
+        #     print(f"[{time_str}] AC_Y: {ac_y:.1f}, Envelope_P2P: {(self.upper_th - self.lower_th):.1f}, "
+        #           f"Recent_P2P: {self.recent_p2p:.1f}, ENMO: {enmo:.1f}")
         if ac_y > self.upper_th: self.upper_th = ac_y
         if ac_y < self.lower_th: self.lower_th = ac_y
 
@@ -138,8 +142,8 @@ class EngineATimeDomain:
 
         dynamic_prom = min(p2p_amp * 0.20, self.recent_p2p * 0.30)
         prominence_th = dynamic_prom
-        MAX_PROMINENCE = 1500.0
-        MIN_PROMINENCE = 150.0
+        MAX_PROMINENCE = 4000.0
+        MIN_PROMINENCE = 400.0
         if prominence_th > MAX_PROMINENCE: prominence_th = MAX_PROMINENCE
         elif prominence_th < MIN_PROMINENCE: prominence_th = MIN_PROMINENCE
 
@@ -257,7 +261,7 @@ class EngineATimeDomain:
             rri_ms = (self.precise_v2_x - self.precise_v1_x) * self.time_per_point_ms
             area_down = self.snap_area - (self.snap_pts * v2_y)
 
-            if 300 <= rri_ms <= 2500 and area_down > 0:
+            if 350 <= rri_ms <= 2000 and area_down > 0:
                 if self.baseline_rri == 0.0:
                     self.baseline_rri = rri_ms
 
@@ -273,7 +277,8 @@ class EngineATimeDomain:
                     amp_up = self.local_max - self.v1_y
                     amp_down = self.local_max - v2_y
                     beat_amp = max(amp_up, amp_down)
-                    if beat_amp > 100.0:
+                    # 只有当这个波的振幅大于当前参考值的 30% 时，才承认它是有效生理波并更新阈值
+                    if beat_amp > (self.recent_p2p * 0.3):
                         self.recent_p2p = self.recent_p2p * 0.9 + beat_amp * 0.1
 
                     raw_area_up = self.area_up_saved if amp_up > self.MIN_VALID_AMP else 0.0
