@@ -52,9 +52,7 @@ def main():
     pd.DataFrame(continuous_records).to_csv("data/pipeline_continuous.csv", index=False)
     pd.DataFrame(event_records).to_csv("data/pipeline_events.csv", index=False)
 
-    print(f"\n--- ✅ 仿真结束 ---")
     print(f"总点数: {len(continuous_records)} | 输出特征: {len(event_records)} 次 | 耗时: {cost_time:.3f} 秒")
-    print("现在你可以去 Jupyter Notebook 运行你的可视化交互代码了！")
 
 
 if __name__ == "__main__":

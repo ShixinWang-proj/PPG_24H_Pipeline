@@ -1,0 +1,13 @@
+# 忽略项目中的所有 CSV 文件
+*.csv
+
+# Python 缓存
+__pycache__/
+*.py[cod]
+
+# IDE 配置文件
+.idea/
+.vscode/
+
+# Jupyter 缓存
+.ipynb_checkpoints/
